@@ -10,8 +10,8 @@ let rec procinput lines callback =
     | x -> procinput (x :: lines) callback
 
 let outFile = 
-    ((Environment.GetFolderPath Environment.SpecialFolder.Desktop)
-      :: ["fsharp.csv"])
+    let desktopFolder = (Environment.GetFolderPath Environment.SpecialFolder.Desktop)
+    desktopFolder :: ["fsharp.csv"]
         |> List.toArray
         |> Path.Combine 
 
