@@ -16,9 +16,10 @@ let toCsv (lines : string list) =
     match lines.Length with
     | 0 -> File.WriteAllText(file, "")
     | _ -> 
-        lines |> (fun x -> 
-        let csv = CsvFile.Parse(String.Join(Environment.NewLine, x), hasHeaders = false)
-        csv.Save(file, ',', '"'))
+        lines
+        |> (fun x -> String.Join(Environment.NewLine, x))
+        |> (fun x -> CsvFile.Parse(x, hasHeaders = false))
+        |> (fun x -> x.Save(file, ',', '"'))
 
 [<EntryPoint>]
 let main argv = 
