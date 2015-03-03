@@ -9,20 +9,29 @@ let rec procinput lines callback =
     | "" -> procinput lines callback
     | x -> procinput (x :: lines) callback
 
-[<Literal>]
-let file = @"C:\scratch\fsharp.csv"
+let outFile = 
+    ((Environment.GetFolderPath Environment.SpecialFolder.Desktop)
+      :: ["fsharp.csv"])
+        |> List.toArray
+        |> Path.Combine 
 
-let joinLines lines = String.Join(Envornment.NewLine, lines)
+let joinLines (lines:string list) = String.Join(Environment.NewLine, lines)
 
-let parseToCsvNoHeader str = CsvFile.Parse(str, hasHeader = false)
+let parseToCsvNoHeader str = FSharp.Data.CsvFile.Parse(str, hasHeaders = false)
 
 let toCsv (lines: string list) =
     lines
         |> joinLines
         |> parseToCsvNoHeader
 
+let toCsvAndSave (lines: string list) : Unit =
+    match lines.Length with
+    | 0 -> ignore 0
+    | _ ->
+        let csv = toCsv lines
+        csv.Save(outFile, ',', '"')
+
 [<EntryPoint>]
 let main argv = 
-    let foo = procinput [] toCsv
-    foo.Save(file, ',', '"')
+    let foo = procinput [] toCsvAndSave
     0 // return an integer exit code
