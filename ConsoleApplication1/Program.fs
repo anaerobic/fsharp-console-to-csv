@@ -44,6 +44,12 @@ let toCsvAndSave (lines : string list) : Unit =
         let csv = toCsv lines
         csv.Save(outFile, ',', '"')
 
+let rec gogogadget lines = 
+    File.WriteAllLines(outFile, List.toArray lines)
+    match procinput lines toCsvAndSave with
+    | [] -> gogogadget lines
+    | _ -> ignore 0
+
 let addHeaderRow = 
     printfn "enter your header row:"
     match Console.ReadLine() with
@@ -52,12 +58,6 @@ let addHeaderRow =
         |> parseToCsvNoHeader
         |> saveCsvToString
         |> wrapInList
-
-let rec gogogadget lines = 
-    File.WriteAllLines(outFile, List.toArray lines)
-    match procinput lines toCsvAndSave with
-    | [] -> gogogadget lines
-    | _ -> ignore 0
 
 [<EntryPoint>]
 let main argv = 
