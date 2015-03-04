@@ -3,32 +3,63 @@ open System.IO
 open FSharp.Data
 
 let rec procinput lines callback = 
-    match callback lines with
-    | true -> 
-        try 
-            match Console.ReadLine() with
-            | null -> List.rev lines
-            | "" -> procinput lines callback
-            | x -> procinput (x :: lines) callback
-        with ex -> 
-            printfn "Nooo! %s" ex.Message
-            []
-    | false -> []
+    callback lines
+    try 
+        match Console.ReadLine() with
+        | null -> lines
+        | "" -> procinput lines callback
+        | x -> procinput (x :: lines) callback
+    with ex -> 
+        printfn "Nooo! %s" ex.Message
+        []
 
-[<Literal>]
-let file = @"C:\scratch\fsharp.csv"
+let outFile = 
+    let desktopFolder = (Environment.GetFolderPath Environment.SpecialFolder.Desktop)
+    desktopFolder :: [ "fsharp.csv" ]
+    |> List.toArray
+    |> Path.Combine
+
+let reverseLines lines = List.rev lines
+let joinLines (lines : string list) = String.Join(Environment.NewLine, lines)
+
+let reverseAndJoinLines lines = 
+    lines
+    |> reverseLines
+    |> joinLines
+
+let parseToCsvNoHeader str = FSharp.Data.CsvFile.Parse(str, hasHeaders = false)
+let parseToCsvWithHeader str = FSharp.Data.CsvFile.Parse(str, hasHeaders = true)
+let saveCsvToString (csv : FSharp.Data.CsvFile) = csv.SaveToString()
+let wrapInList s = [ s ]
 
 let toCsv (lines : string list) = 
+    lines
+    |> reverseAndJoinLines
+    |> parseToCsvWithHeader
+
+let toCsvAndSave (lines : string list) : Unit = 
     match lines.Length with
-    | 0 -> File.WriteAllText(file, "")
+    | 0 -> ignore 0
     | _ -> 
-        lines
-        |> (fun x -> String.Join(Environment.NewLine, x))
-        |> (fun x -> CsvFile.Parse(x, hasHeaders = false))
-        |> (fun x -> x.Save(file, ',', '"'))
-    true
+        let csv = toCsv lines
+        csv.Save(outFile, ',', '"')
+
+let addHeaderRow = 
+    printfn "enter your header row:"
+    match Console.ReadLine() with
+    | line -> 
+        line
+        |> parseToCsvNoHeader
+        |> saveCsvToString
+        |> wrapInList
+
+let rec gogogadget lines = 
+    File.WriteAllLines(outFile, List.toArray lines)
+    match procinput lines toCsvAndSave with
+    | [] -> gogogadget lines
+    | _ -> ignore 0
 
 [<EntryPoint>]
 let main argv = 
-    let foo = procinput [] toCsv
+    gogogadget addHeaderRow
     0 // return an integer exit code
