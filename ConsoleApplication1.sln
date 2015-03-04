@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 14
 VisualStudioVersion = 14.0.22609.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ConsoleApplication1", "ConsoleApplication1\ConsoleApplication1.fsproj", "{A2C7918A-072E-4DF8-95B2-D328C48D0A16}"
-EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "osxProj", "osxProj\osxProj.fsproj", "{653E357E-C928-46F6-BCF7-03FC82B76F13}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,10 +11,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{653E357E-C928-46F6-BCF7-03FC82B76F13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{653E357E-C928-46F6-BCF7-03FC82B76F13}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{653E357E-C928-46F6-BCF7-03FC82B76F13}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{653E357E-C928-46F6-BCF7-03FC82B76F13}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A2C7918A-072E-4DF8-95B2-D328C48D0A16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A2C7918A-072E-4DF8-95B2-D328C48D0A16}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A2C7918A-072E-4DF8-95B2-D328C48D0A16}.Release|Any CPU.ActiveCfg = Release|Any CPU
