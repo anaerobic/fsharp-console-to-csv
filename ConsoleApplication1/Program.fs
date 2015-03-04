@@ -10,64 +10,64 @@ let outFile =
     |> List.toArray
     |> Path.Combine
 
-type consoleReader() = 
-    let readEvent = new Event<_>()
-    let mutable stop = false
-    
-    [<CLIEvent>]
-    member this.LineStream = readEvent.Publish
-    
-    member this.StartReader = 
+let createConsoleStream (cancelationToken: System.Threading.CancellationToken) = 
+    let lineEvent = new Event<_>()
+    let tryTrigger msg =
         try 
-            async { 
-                while stop = false do
-                    Console.ReadLine() |> readEvent.Trigger
-            }
-            |> Async.RunSynchronously
+            msg |> lineEvent.Trigger
         with ex -> 
-            printfn "Nooo! %s" ex.Message
-            stop <- true
-    
-    member this.StopReader = stop <- true
-
-let joinLines (lines : string list) = String.Join(Environment.NewLine, lines)
-let parseToCsvWithHeader str = FSharp.Data.CsvFile.Parse(str, hasHeaders = true)
-let parseToCsvWithoutHeader str = FSharp.Data.CsvFile.Parse(str, hasHeaders = false)
-
-let appendAll file text = File.AppendAllText(file, text)
-let writeAll file text = File.WriteAllText(file, text)
-let csvAppend file (csv : CsvFile) : Unit = csv.SaveToString() |> appendAll file
-let csvWriteAll file (csv : CsvFile) : Unit = csv.SaveToString() |> writeAll file
+            printfn "Nooo! %s" ex.Message 
+    let streamSource = async { 
+        while not cancelationToken.IsCancellationRequested do
+            Console.ReadLine() 
+            |> tryTrigger
+    }
+    (streamSource, lineEvent.Publish)
 
 let isNullOrEmpty str = 
     match str with
        | null | "" -> true
        | _ -> false
-
 let notEmpty str = not (isNullOrEmpty str)
+let joinLines (lines : string list) = String.Join(Environment.NewLine, lines)
+let parseToCsvWithHeader str = FSharp.Data.CsvFile.Parse(str, hasHeaders = true)
+let parseToCsvWithoutHeader str = FSharp.Data.CsvFile.Parse(str, hasHeaders = false)
+let appendAll file text = File.AppendAllText(file, text)
+let writeAll file text = File.WriteAllText(file, text)
+
+let csvAppend file (csv : CsvFile) = 
+    csv.SaveToString() 
+    |> appendAll file
+
+let csvWriteAll file (csv : CsvFile) = 
+    csv.SaveToString() 
+    |> writeAll file
 
 let writeHeader file = 
     parseToCsvWithoutHeader
     >> csvWriteAll file
 
 let appendToFileAsCsv file = 
-    Observable.filter notEmpty
-    >> Observable.map parseToCsvWithHeader
+    Observable.map parseToCsvWithHeader
     >> Observable.subscribe (csvAppend file)
 
+let splitOnData stream =
+    let hasData = stream |> Observable.filter notEmpty     
+    let noData =  stream |> Observable.filter isNullOrEmpty
+    (hasData,noData) 
 [<EntryPoint>]
 let main argv = 
-    let cReader = new consoleReader()
+    let cancelReader = new System.Threading.CancellationTokenSource()
+    let (streamSource, stream) = createConsoleStream cancelReader.Token
     
-    let readerSub = 
-        cReader.LineStream
-        |> appendToFileAsCsv outFile
-    
-    let stopSub = 
-        cReader.LineStream
-        |> Observable.filter isNullOrEmpty
-        |> Observable.subscribe (fun x -> cReader.StopReader)
+    let (data, noData) = stream |> splitOnData
+    let appender = data 
+                    |> Observable.takeUntilOther noData
+                    |> appendToFileAsCsv outFile
+    let canceller = noData |> Observable.subscribe (fun x -> cancelReader.Cancel())
 
     printfn "enter your header row:"
     Console.ReadLine() |> writeHeader outFile
-    cReader.StartReader; 0 // return an integer exit code
+
+    streamSource |> Async.RunSynchronously
+    0 // return an integer exit code
