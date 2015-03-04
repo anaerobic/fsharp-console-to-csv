@@ -1,13 +1,22 @@
 ﻿open System
 open System.IO
 open FSharp.Data
+open FSharp.Control.Reactive
+open FSharp.Control
 
-let rec procinput lines callback = 
-    callback lines
-    match Console.ReadLine() with
-    | null -> List.rev lines
-    | "" -> procinput lines callback
-    | x -> procinput (x :: lines) callback
+type consoleReader() =
+    let readEvent = new Event<_>()
+    let mutable stop = false
+    [<CLIEvent>]
+    member this.ReadEvent = readEvent.Publish
+    member this.StartReader = 
+        async {
+                while stop = false do
+                    Console.ReadLine()
+                        |> readEvent.Trigger
+            }
+            |> Async.RunSynchronously
+    member this.StopReader = stop <- true;
 
 let outFile = 
     let desktopFolder = (Environment.GetFolderPath Environment.SpecialFolder.Desktop)
@@ -24,14 +33,20 @@ let toCsv (lines: string list) =
         |> joinLines
         |> parseToCsvNoHeader
 
-let toCsvAndSave (lines: string list) : Unit =
-    match lines.Length with
-    | 0 -> ignore 0
-    | _ ->
-        let csv = toCsv lines
-        csv.Save(outFile, ',', '"')
-
 [<EntryPoint>]
 let main argv = 
-    let foo = procinput [] toCsvAndSave
+    let cReader = new consoleReader()
+    let readerSub = cReader.ReadEvent
+                        |> Observable.bufferCount 2
+                        |> Observable.map (fun a -> a |> List.ofSeq)
+                        |> Observable.map toCsv
+                        |> Observable.subscribe (fun x -> x.Save(outFile))
+    let stopSub = cReader.ReadEvent
+                    |> Observable.filter (fun x -> match x with
+                                                    | null 
+                                                    | "" -> true
+                                                    | _ -> false)
+                    |> Observable.subscribe (fun x -> cReader.StopReader)
+    cReader.StartReader
+
     0 // return an integer exit code
